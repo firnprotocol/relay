@@ -13,8 +13,8 @@ const mainnetFirn = new ethers.Contract( // this is a proxy
   new ethers.Wallet(process.argv[2], mainnetProvider)
 );
 const optimismProvider = optimism.asL2Provider(new ethers.providers.AlchemyProvider("optimism")); // , "GHIJKLMNOPQRSTUVWXYZ0123456789-_"));
-const optimismFirn = new ethers.Contract( // not a proxy
-  "0xddfFdf3B0FF6D9D85135c5041bdE61D03FeE04A3",
+const optimismFirn = new ethers.Contract( // also a proxy
+  "0x3C6c27072356016F05a4736FaaBA91d3c2b26E90",
   FIRN_ABI,
   new ethers.Wallet(process.argv[2], optimismProvider)
 );
