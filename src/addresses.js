@@ -1,0 +1,14 @@
+const ADDRESSES = {
+  "Ethereum": {
+    PROXY: "0x6cb5b67ebe8af11a8b88d740f95dd1316c26b701",
+  },
+  "Optimism": {
+    PROXY: "0x3C6c27072356016F05a4736FaaBA91d3c2b26E90",
+    ORACLE: "0x420000000000000000000000000000000000000F",
+  },
+  "Arbitrum One": {
+    PROXY: "0x4115Cb2612E1699F3605Fd1f12b1D1D05D207916",
+  },
+};
+
+module.exports = ADDRESSES;

@@ -1,0 +1,191 @@
+const https = require("https");
+const fs = require("fs");
+const { createWalletClient, formatUnits, getContract, http, parseGwei, createPublicClient } = require("viem");
+const { privateKeyToAccount } = require("viem/accounts");
+
+const { FIRN_ABI, ORACLE_ABI } = require("./abis");
+const ADDRESSES = require("./addresses");
+const CHAIN_PARAMS = require("./networks");
+
+//  you will need to replace the below with appropriate actual certificates on your filesystem.
+const options = {
+  key: fs.readFileSync("/etc/letsencrypt/live/www.firn.link/privkey.pem"),
+  cert: fs.readFileSync("/etc/letsencrypt/live/www.firn.link/fullchain.pem")
+};
+
+const account = privateKeyToAccount(process.argv[2]);
+
+const clients = Object.fromEntries(Object.keys(CHAIN_PARAMS).map((name) => {
+  return [name, createPublicClient({
+    chain: CHAIN_PARAMS[name].chain,
+    transport: http(CHAIN_PARAMS[name].rpcUrl),
+  })];
+}));
+
+const contracts = Object.fromEntries(Object.keys(CHAIN_PARAMS).map((name) => {
+  return [name, getContract({
+    address: ADDRESSES[name].PROXY,
+    abi: FIRN_ABI,
+    walletClient: createWalletClient({
+      account,
+      chain: CHAIN_PARAMS[name].chain,
+      transport: http(CHAIN_PARAMS[name].rpcUrl),
+    }),
+  })];
+}));
+
+const oracle = getContract({ // optimsim gas oracle
+  address: ADDRESSES["Optimism"].ORACLE,
+  abi: ORACLE_ABI,
+  publicClient: clients["Optimism"],
+});
+
+const maxPriorityFeePerGas = parseGwei("1.5");
+
+const TRANSFER_TX_DATA_GAS = 52800; // 52776;
+const WITHDRAWAL_TX_DATA_GAS = 46500; // 46420;
+const FIXED_OVERHEAD = 2100;
+const DYNAMIC_OVERHEAD = 1; // 1.24
+// l1_data_fee = l1_gas_price * (tx_data_gas + fixed_overhead) * dynamic_overhead
+// https://community.optimism.io/docs/developers/build/transaction-fees/#the-l1-data-fee
+
+const server = https.createServer(options, (req, res) => {
+  if (req.method === "OPTIONS") {
+    res.writeHead(204, {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Methods": "OPTIONS, POST, GET",
+      "Access-Control-Max-Age": 2592000, // 30 days
+    });
+    res.end();
+    return;
+  }
+  if (req.method === "GET") {
+    let path = req.url;
+    if (path === "/") path = "/index.html";
+    path = "./dist" + path;
+    fs.readFile(path, function (error, content) {
+      if (error) {
+        res.writeHead(
+          500,
+          "Something happened.",
+          {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            "Access-Control-Allow-Methods": "OPTIONS, POST, GET",
+            "Content-Type": "application/json",
+          });
+        res.end();
+      } else {
+        res.writeHead(200, { "Content-Type": "application/pdf" });
+        res.end(content);
+      }
+    });
+    return;
+  }
+  if (req.method === "POST") {
+    let body = "";
+
+    req.on("data", (data) => {
+      body += data;
+      if (body.length > 50000) {
+        req.destroy(); // check this.
+      }
+    });
+
+    req.on("end", async () => {
+      res.writeHead(200, {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "OPTIONS, POST, GET",
+        "Content-Type": "application/json",
+      });
+      if (req.url === "/health") {
+        res.end(JSON.stringify({})); // or i could do empty?
+        return;
+      }
+      try {
+        console.log(body);
+        const post = JSON.parse(body);
+        let hash;
+        if (req.url === "/transfer1") {
+          const feeHistory = await clients["Ethereum"].getFeeHistory({
+            blockCount: 1,
+            rewardPercentiles: []
+          });
+          const maxFeePerGas = feeHistory.baseFeePerGas[0] + maxPriorityFeePerGas;
+          const gas = await contracts["Ethereum"].estimateGas.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof]);
+          const totalFee = maxFeePerGas * gas;
+          if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
+          hash = await contracts["Ethereum"].write.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof]);
+        } else if (req.url === "/withdrawal1") {
+          const feeHistory = await clients["Ethereum"].getFeeHistory({
+            blockCount: 1,
+            rewardPercentiles: []
+          });
+          const maxFeePerGas = feeHistory.baseFeePerGas[0] + maxPriorityFeePerGas;
+          const gas = await contracts["Ethereum"].estimateGas.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data]);
+          const totalFee = maxFeePerGas * gas;
+          if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
+          hash = await contracts["Ethereum"].write.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data]);
+        } else if (req.url === "/transfer10") {
+          const l1BaseFee = await oracle.read.l1BaseFee();
+          const l2GasPrice = await clients["Optimism"].getGasPrice();
+          const gas = await contracts["Optimism"].estimateGas.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof]);
+          const l1DataFee = l1BaseFee * BigInt(Math.ceil((TRANSFER_TX_DATA_GAS + FIXED_OVERHEAD) * DYNAMIC_OVERHEAD));
+          const l2ExecutionFee = l2GasPrice * gas;
+          const totalFee = l1DataFee + l2ExecutionFee;
+          if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
+          hash = await contracts["Optimism"].write.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof]);
+        } else if (req.url === "/withdrawal10") {
+          const l1BaseFee = await oracle.read.l1BaseFee();
+          const l2GasPrice = await clients["Optimism"].getGasPrice();
+          const gas = await contracts["Optimism"].estimateGas.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data]);
+          const l1DataFee = l1BaseFee * BigInt(Math.ceil((WITHDRAWAL_TX_DATA_GAS + FIXED_OVERHEAD) * DYNAMIC_OVERHEAD));
+          const l2ExecutionFee = l2GasPrice * gas;
+          const totalFee = l1DataFee + l2ExecutionFee;
+          if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
+          hash = await contracts["Optimism"].write.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data]);
+        } else if (req.url === "/transfer42161") {
+          const l2GasPrice = await clients["Arbitrum One"].getGasPrice();
+          const gas = await contracts["Arbitrum One"].estimateGas.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof]);
+          const totalFee = l2GasPrice * gas;
+          if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
+          hash = await contracts["Arbitrum One"].write.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof]);
+        } else if (req.url === "/withdrawal42161") {
+          const l2GasPrice = await clients["Arbitrum One"].getGasPrice();
+          const gas = await contracts["Arbitrum One"].estimateGas.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data]);
+          const totalFee = l2GasPrice * gas;
+          if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
+          hash = await contracts["Arbitrum One"].write.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data]);
+        } else {
+          throw new Error("Unsupported endpoint");
+        }
+        res.write(JSON.stringify({
+          hash,
+        }));
+      } catch (error) {
+        console.error(error);
+        // could try to separate out the case of a reversion... (or detect it earlier!)
+        let statusMessage = "Unknown error";
+        if (error.message === "Tip too low") statusMessage = "Tip too low";
+        else if (error.details === "execution reverted: Wrong epoch." || error.cause?.reason === "Wrong epoch.") statusMessage = "Wrong epoch";
+
+        res.writeHead(
+          500,
+          statusMessage,
+          {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            "Access-Control-Allow-Methods": "OPTIONS, POST, GET",
+            "Content-Type": "application/json",
+          }
+        );
+      } finally {
+        res.end();
+      }
+    });
+  }
+});
+
+server.listen(8000);
