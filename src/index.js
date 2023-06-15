@@ -117,7 +117,9 @@ const server = https.createServer(options, (req, res) => {
           const gas = await contracts["Ethereum"].estimateGas.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof]);
           const totalFee = maxFeePerGas * gas;
           if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
-          hash = await contracts["Ethereum"].write.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof]);
+          hash = await contracts["Ethereum"].write.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof], {
+            gas
+          });
         } else if (req.url === "/withdrawal1") {
           const feeHistory = await clients["Ethereum"].getFeeHistory({
             blockCount: 1,
@@ -127,7 +129,9 @@ const server = https.createServer(options, (req, res) => {
           const gas = await contracts["Ethereum"].estimateGas.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data]);
           const totalFee = maxFeePerGas * gas;
           if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
-          hash = await contracts["Ethereum"].write.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data]);
+          hash = await contracts["Ethereum"].write.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data], {
+            gas
+          });
         } else if (req.url === "/transfer10") {
           const l1BaseFee = await oracle.read.l1BaseFee();
           const l2GasPrice = await clients["Optimism"].getGasPrice();
@@ -137,6 +141,7 @@ const server = https.createServer(options, (req, res) => {
           const totalFee = l1DataFee + l2ExecutionFee;
           if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
           hash = await contracts["Optimism"].write.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof], {
+            gas,
             maxPriorityFeePerGas: l2GasPrice,
           });
         } else if (req.url === "/withdrawal10") {
@@ -148,6 +153,7 @@ const server = https.createServer(options, (req, res) => {
           const totalFee = l1DataFee + l2ExecutionFee;
           if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
           hash = await contracts["Optimism"].write.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data], {
+            gas,
             maxPriorityFeePerGas: l2GasPrice,
           });
         } else if (req.url === "/transfer42161") {
@@ -156,6 +162,7 @@ const server = https.createServer(options, (req, res) => {
           const totalFee = l2GasPrice * gas;
           if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
           hash = await contracts["Arbitrum One"].write.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof], {
+            gas,
             maxPriorityFeePerGas: l2GasPrice,
           });
         } else if (req.url === "/withdrawal42161") {
@@ -164,6 +171,7 @@ const server = https.createServer(options, (req, res) => {
           const totalFee = l2GasPrice * gas;
           if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
           hash = await contracts["Arbitrum One"].write.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data], {
+            gas,
             maxPriorityFeePerGas: l2GasPrice,
           });
         } else {
