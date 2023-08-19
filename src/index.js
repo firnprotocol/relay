@@ -142,7 +142,6 @@ const server = https.createServer(options, (req, res) => {
           if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
           hash = await contracts["Optimism"].write.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof], {
             gas,
-            maxPriorityFeePerGas: l2GasPrice,
           });
         } else if (req.url === "/withdrawal10") {
           const l1BaseFee = await oracle.read.l1BaseFee();
@@ -154,7 +153,6 @@ const server = https.createServer(options, (req, res) => {
           if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
           hash = await contracts["Optimism"].write.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data], {
             gas,
-            maxPriorityFeePerGas: l2GasPrice,
           });
         } else if (req.url === "/transfer42161") {
           const l2GasPrice = await clients["Arbitrum One"].getGasPrice();
@@ -163,7 +161,6 @@ const server = https.createServer(options, (req, res) => {
           if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
           hash = await contracts["Arbitrum One"].write.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof], {
             gas,
-            maxPriorityFeePerGas: l2GasPrice,
           });
         } else if (req.url === "/withdrawal42161") {
           const l2GasPrice = await clients["Arbitrum One"].getGasPrice();
@@ -172,7 +169,6 @@ const server = https.createServer(options, (req, res) => {
           if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
           hash = await contracts["Arbitrum One"].write.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data], {
             gas,
-            maxPriorityFeePerGas: l2GasPrice,
           });
         } else {
           throw new Error("Unsupported endpoint");
