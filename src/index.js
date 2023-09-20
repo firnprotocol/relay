@@ -62,29 +62,6 @@ const server = https.createServer(options, (req, res) => {
     res.end();
     return;
   }
-  if (req.method === "GET") {
-    let path = req.url;
-    if (path === "/") path = "/index.html";
-    path = "./dist" + path;
-    fs.readFile(path, function (error, content) {
-      if (error) {
-        res.writeHead(
-          500,
-          "Something happened.",
-          {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization",
-            "Access-Control-Allow-Methods": "OPTIONS, POST, GET",
-            "Content-Type": "application/json",
-          });
-        res.end();
-      } else {
-        res.writeHead(200, { "Content-Type": "application/pdf" });
-        res.end(content);
-      }
-    });
-    return;
-  }
   if (req.method === "POST") {
     let body = "";
 
