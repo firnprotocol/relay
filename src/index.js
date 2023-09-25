@@ -46,8 +46,8 @@ const maxPriorityFeePerGas = parseGwei("1.5");
 
 const TRANSFER_TX_DATA_GAS = 52800; // 52776;
 const WITHDRAWAL_TX_DATA_GAS = 46500; // 46420;
-const FIXED_OVERHEAD = 2100;
-const DYNAMIC_OVERHEAD = 1; // 1.24
+const FIXED_OVERHEAD = 188;
+const DYNAMIC_OVERHEAD = 0.684;
 // l1_data_fee = l1_gas_price * (tx_data_gas + fixed_overhead) * dynamic_overhead
 // https://community.OP Mainnet.io/docs/developers/build/transaction-fees/#the-l1-data-fee
 
