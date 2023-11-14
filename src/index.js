@@ -73,13 +73,13 @@ const server = https.createServer(options, (req, res) => {
     });
 
     req.on("end", async () => {
-      res.writeHead(200, {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        "Access-Control-Allow-Methods": "OPTIONS, POST, GET",
-        "Content-Type": "application/json",
-      });
       if (req.url === "/health") {
+        res.writeHead(200, {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          "Access-Control-Allow-Methods": "OPTIONS, POST, GET",
+          "Content-Type": "application/json",
+        });
         res.end(JSON.stringify({})); // or i could do empty?
         return;
       }
@@ -174,6 +174,12 @@ const server = https.createServer(options, (req, res) => {
         } else {
           throw new Error("Unsupported endpoint");
         }
+        res.writeHead(200, {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          "Access-Control-Allow-Methods": "OPTIONS, POST, GET",
+          "Content-Type": "application/json",
+        });
         res.write(JSON.stringify({
           hash,
         }));
