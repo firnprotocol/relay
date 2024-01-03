@@ -26,11 +26,13 @@ const contracts = Object.fromEntries(Object.keys(CHAIN_PARAMS).map((name) => {
   return [name, getContract({
     address: ADDRESSES[name].PROXY,
     abi: FIRN_ABI,
-    walletClient: createWalletClient({
-      account,
-      chain: CHAIN_PARAMS[name].chain,
-      transport: http(CHAIN_PARAMS[name].rpcUrl),
-    }),
+    client: {
+      wallet: createWalletClient({
+        account,
+        chain: CHAIN_PARAMS[name].chain,
+        transport: http(CHAIN_PARAMS[name].rpcUrl),
+      }),
+    }
   })];
 }));
 
@@ -38,7 +40,7 @@ const oracles = Object.fromEntries(["OP Mainnet", "Base"].map((name) => {
   return [name, getContract({
     address: ADDRESSES[name].ORACLE,
     abi: ORACLE_ABI,
-    publicClient: clients[name],
+    client: clients[name], // only a publicClient
   })];
 }));
 
