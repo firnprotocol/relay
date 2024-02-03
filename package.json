@@ -1,10 +1,9 @@
 {
   "name": "relay",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "main": "index.js",
   "private": true,
   "dependencies": {
-    "viem": "^2.0.0"
-  },
-  "packageManager": "yarn@3.5.1"
+    "viem": "^2.7.2"
+  }
 }

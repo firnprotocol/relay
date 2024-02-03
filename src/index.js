@@ -99,6 +99,7 @@ const server = https.createServer(options, (req, res) => {
           const totalFee = maxFeePerGas * gas;
           if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
           hash = await contracts["Ethereum"].write.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof], {
+            chain: CHAIN_PARAMS["Ethereum"].chain,
             gas
           });
         } else if (req.url === "/withdrawal1") {
@@ -111,6 +112,7 @@ const server = https.createServer(options, (req, res) => {
           const totalFee = maxFeePerGas * gas;
           if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
           hash = await contracts["Ethereum"].write.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data], {
+            chain: CHAIN_PARAMS["Ethereum"].chain,
             gas
           });
         } else if (req.url === "/transfer10") {
@@ -122,6 +124,7 @@ const server = https.createServer(options, (req, res) => {
           const totalFee = l1DataFee + l2ExecutionFee;
           if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
           hash = await contracts["OP Mainnet"].write.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof], {
+            chain: CHAIN_PARAMS["OP Mainnet"].chain,
             gas,
           });
         } else if (req.url === "/withdrawal10") {
@@ -133,6 +136,7 @@ const server = https.createServer(options, (req, res) => {
           const totalFee = l1DataFee + l2ExecutionFee;
           if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
           hash = await contracts["OP Mainnet"].write.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data], {
+            chain: CHAIN_PARAMS["OP Mainnet"].chain,
             gas,
           });
         } else if (req.url === "/transfer8453") {
@@ -144,6 +148,7 @@ const server = https.createServer(options, (req, res) => {
           const totalFee = l1DataFee + l2ExecutionFee;
           if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
           hash = await contracts["Base"].write.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof], {
+            chain: CHAIN_PARAMS["Base"].chain,
             gas,
           });
         } else if (req.url === "/withdrawal8453") {
@@ -155,6 +160,7 @@ const server = https.createServer(options, (req, res) => {
           const totalFee = l1DataFee + l2ExecutionFee;
           if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
           hash = await contracts["Base"].write.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data], {
+            chain: CHAIN_PARAMS["Base"].chain,
             gas,
           });
         } else if (req.url === "/transfer42161") {
@@ -163,6 +169,7 @@ const server = https.createServer(options, (req, res) => {
           const totalFee = l2GasPrice * gas;
           if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
           hash = await contracts["Arbitrum One"].write.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof], {
+            chain: CHAIN_PARAMS["Arbitrum One"].chain,
             gas,
           });
         } else if (req.url === "/withdrawal42161") {
@@ -171,6 +178,7 @@ const server = https.createServer(options, (req, res) => {
           const totalFee = l2GasPrice * gas;
           if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
           hash = await contracts["Arbitrum One"].write.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data], {
+            chain: CHAIN_PARAMS["Arbitrum One"].chain,
             gas,
           });
         } else {
