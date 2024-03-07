@@ -4,6 +4,6 @@
   "main": "index.js",
   "private": true,
   "dependencies": {
-    "viem": "^2.7.2"
+    "viem": "^2.7.20"
   }
 }
