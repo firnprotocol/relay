@@ -3,7 +3,7 @@ const fs = require("fs");
 const { createWalletClient, formatUnits, getContract, http, parseGwei, createPublicClient } = require("viem");
 const { privateKeyToAccount } = require("viem/accounts");
 
-const { FIRN_ABI, ORACLE_ABI } = require("./abis");
+const FIRN_ABI = require("./abis");
 const ADDRESSES = require("./addresses");
 const CHAIN_PARAMS = require("./networks");
 
@@ -27,6 +27,7 @@ const contracts = Object.fromEntries(Object.keys(CHAIN_PARAMS).map((name) => {
     address: ADDRESSES[name].PROXY,
     abi: FIRN_ABI,
     client: {
+      public: clients[name],
       wallet: createWalletClient({
         account,
         chain: CHAIN_PARAMS[name].chain,
@@ -36,22 +37,9 @@ const contracts = Object.fromEntries(Object.keys(CHAIN_PARAMS).map((name) => {
   })];
 }));
 
-const oracles = Object.fromEntries(["OP Mainnet", "Base"].map((name) => {
-  return [name, getContract({
-    address: ADDRESSES[name].ORACLE,
-    abi: ORACLE_ABI,
-    client: clients[name], // only a publicClient
-  })];
-}));
 
 const maxPriorityFeePerGas = parseGwei("1.5");
 
-const TRANSFER_TX_DATA_GAS = 52800; // 52776;
-const WITHDRAWAL_TX_DATA_GAS = 46500; // 46420;
-const FIXED_OVERHEAD = 188;
-const DYNAMIC_OVERHEAD = 0.684;
-// l1_data_fee = l1_gas_price * (tx_data_gas + fixed_overhead) * dynamic_overhead
-// https://community.OP Mainnet.io/docs/developers/build/transaction-fees/#the-l1-data-fee
 
 const server = https.createServer(options, (req, res) => {
   if (req.method === "OPTIONS") {
@@ -116,71 +104,23 @@ const server = https.createServer(options, (req, res) => {
             gas
           });
         } else if (req.url === "/transfer10") {
-          const l1BaseFee = await oracles["OP Mainnet"].read.l1BaseFee();
-          const l2GasPrice = await clients["OP Mainnet"].getGasPrice();
-          const gas = await contracts["OP Mainnet"].estimateGas.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof]);
-          const l1DataFee = l1BaseFee * BigInt(Math.ceil((TRANSFER_TX_DATA_GAS + FIXED_OVERHEAD) * DYNAMIC_OVERHEAD));
-          const l2ExecutionFee = l2GasPrice * gas;
-          const totalFee = l1DataFee + l2ExecutionFee;
-          if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
-          hash = await contracts["OP Mainnet"].write.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof], {
-            chain: CHAIN_PARAMS["OP Mainnet"].chain,
-            gas,
-          });
+          const { request } = await contracts["OP Mainnet"].simulate.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof]);
+          hash = await contracts["OP Mainnet"].write.transfer(request);
         } else if (req.url === "/withdrawal10") {
-          const l1BaseFee = await oracles["OP Mainnet"].read.l1BaseFee();
-          const l2GasPrice = await clients["OP Mainnet"].getGasPrice();
-          const gas = await contracts["OP Mainnet"].estimateGas.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data]);
-          const l1DataFee = l1BaseFee * BigInt(Math.ceil((WITHDRAWAL_TX_DATA_GAS + FIXED_OVERHEAD) * DYNAMIC_OVERHEAD));
-          const l2ExecutionFee = l2GasPrice * gas;
-          const totalFee = l1DataFee + l2ExecutionFee;
-          if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
-          hash = await contracts["OP Mainnet"].write.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data], {
-            chain: CHAIN_PARAMS["OP Mainnet"].chain,
-            gas,
-          });
+          const { request } = await contracts["OP Mainnet"].simulate.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data]);
+          hash = await contracts["OP Mainnet"].write.withdraw(request);
         } else if (req.url === "/transfer8453") {
-          const l1BaseFee = await oracles["Base"].read.l1BaseFee();
-          const l2GasPrice = await clients["Base"].getGasPrice();
-          const gas = await contracts["Base"].estimateGas.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof]);
-          const l1DataFee = l1BaseFee * BigInt(Math.ceil((TRANSFER_TX_DATA_GAS + FIXED_OVERHEAD) * DYNAMIC_OVERHEAD));
-          const l2ExecutionFee = l2GasPrice * gas;
-          const totalFee = l1DataFee + l2ExecutionFee;
-          if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
-          hash = await contracts["Base"].write.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof], {
-            chain: CHAIN_PARAMS["Base"].chain,
-            gas,
-          });
+          const { request } = await contracts["Base"].simulate.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof]);
+          hash = await contracts["Base"].write.transfer(request);
         } else if (req.url === "/withdrawal8453") {
-          const l1BaseFee = await oracles["Base"].read.l1BaseFee();
-          const l2GasPrice = await clients["Base"].getGasPrice();
-          const gas = await contracts["Base"].estimateGas.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data]);
-          const l1DataFee = l1BaseFee * BigInt(Math.ceil((WITHDRAWAL_TX_DATA_GAS + FIXED_OVERHEAD) * DYNAMIC_OVERHEAD));
-          const l2ExecutionFee = l2GasPrice * gas;
-          const totalFee = l1DataFee + l2ExecutionFee;
-          if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
-          hash = await contracts["Base"].write.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data], {
-            chain: CHAIN_PARAMS["Base"].chain,
-            gas,
-          });
+          const { request } = await contracts["Base"].simulate.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data]);
+          hash = await contracts["Base"].write.withdraw(request);
         } else if (req.url === "/transfer42161") {
-          const l2GasPrice = await clients["Arbitrum One"].getGasPrice();
-          const gas = await contracts["Arbitrum One"].estimateGas.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof]);
-          const totalFee = l2GasPrice * gas;
-          if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
-          hash = await contracts["Arbitrum One"].write.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof], {
-            chain: CHAIN_PARAMS["Arbitrum One"].chain,
-            gas,
-          });
+          const { request } = await contracts["Arbitrum One"].simulate.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof]);
+          hash = await contracts["Arbitrum One"].write.transfer(request);
         } else if (req.url === "/withdrawal42161") {
-          const l2GasPrice = await clients["Arbitrum One"].getGasPrice();
-          const gas = await contracts["Arbitrum One"].estimateGas.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data]);
-          const totalFee = l2GasPrice * gas;
-          if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
-          hash = await contracts["Arbitrum One"].write.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data], {
-            chain: CHAIN_PARAMS["Arbitrum One"].chain,
-            gas,
-          });
+          const { request } = await contracts["Arbitrum One"].simulate.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data]);
+          hash = await contracts["Arbitrum One"].write.withdraw(request);
         } else {
           throw new Error("Unsupported endpoint");
         }

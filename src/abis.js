@@ -492,21 +492,4 @@ const FIRN_ABI = [
   }
 ];
 
-const ORACLE_ABI = [
-  {
-    "inputs": [],
-    "name": "l1BaseFee",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  }
-];
-
-
-module.exports = { FIRN_ABI, ORACLE_ABI };
+module.exports = FIRN_ABI;
