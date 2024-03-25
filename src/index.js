@@ -7,7 +7,7 @@ const { FIRN_ABI, ORACLE_ABI } = require("./abis");
 const ADDRESSES = require("./addresses");
 const CHAIN_PARAMS = require("./networks");
 
-//  you will need to replace the below with appropriate actual certificates on your filesystem.
+// you will need to replace the below with appropriate actual certificates on your filesystem.
 const options = {
   key: fs.readFileSync("/etc/letsencrypt/live/www.firn.link/privkey.pem"),
   cert: fs.readFileSync("/etc/letsencrypt/live/www.firn.link/fullchain.pem")
