@@ -116,7 +116,7 @@ const server = https.createServer(options, (req, res) => {
         } else if (req.url === "/transfer10") {
           const l1BaseFee = await oracles["OP Mainnet"].read.l1BaseFee();
           const blobBaseFee = await oracles["OP Mainnet"].read.blobBaseFee();
-          const weightedGasPrice = 16n * BASE_FEE_SCALAR * l1BaseFee / 1000000n + BLOB_BASE_FEE_SCALAR * blobBaseFee;
+          const weightedGasPrice = (16n * BASE_FEE_SCALAR * l1BaseFee + BLOB_BASE_FEE_SCALAR * blobBaseFee) / 1000000n;
           const gas = await contracts["OP Mainnet"].estimateGas.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof]);
           const l1DataFee = TRANSFER_TX_COMPRESSED_SIZE * weightedGasPrice;
           const { maxFeePerGas: l2GasPrice } = await clients["OP Mainnet"].estimateFeesPerGas() // clients["OP Mainnet"].getGasPrice();
@@ -130,7 +130,7 @@ const server = https.createServer(options, (req, res) => {
         } else if (req.url === "/withdrawal10") {
           const l1BaseFee = await oracles["OP Mainnet"].read.l1BaseFee();
           const blobBaseFee = await oracles["OP Mainnet"].read.blobBaseFee();
-          const weightedGasPrice = 16n * BASE_FEE_SCALAR * l1BaseFee / 1000000n + BLOB_BASE_FEE_SCALAR * blobBaseFee;
+          const weightedGasPrice = (16n * BASE_FEE_SCALAR * l1BaseFee + BLOB_BASE_FEE_SCALAR * blobBaseFee) / 1000000n;
           const gas = await contracts["OP Mainnet"].estimateGas.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data]);
           const l1DataFee = WITHDRAWAL_TX_COMPRESSED_SIZE * weightedGasPrice;
           const { maxFeePerGas: l2GasPrice } = await clients["OP Mainnet"].estimateFeesPerGas() // clients["OP Mainnet"].getGasPrice();
@@ -144,7 +144,7 @@ const server = https.createServer(options, (req, res) => {
         } else if (req.url === "/transfer8453") {
           const l1BaseFee = await oracles["Base"].read.l1BaseFee();
           const blobBaseFee = await oracles["Base"].read.blobBaseFee();
-          const weightedGasPrice = 16n * BASE_FEE_SCALAR * l1BaseFee / 1000000n + BLOB_BASE_FEE_SCALAR * blobBaseFee;
+          const weightedGasPrice = (16n * BASE_FEE_SCALAR * l1BaseFee + BLOB_BASE_FEE_SCALAR * blobBaseFee) / 1000000n;
           const gas = await contracts["Base"].estimateGas.transfer([post.Y, post.C, post.D, post.u, post.epoch, post.tip, post.proof]);
           const l1DataFee = TRANSFER_TX_COMPRESSED_SIZE * weightedGasPrice;
           const { maxFeePerGas: l2GasPrice } = await clients["Base"].estimateFeesPerGas() // clients["Base"].getGasPrice();
@@ -158,7 +158,7 @@ const server = https.createServer(options, (req, res) => {
         } else if (req.url === "/withdrawal8453") {
           const l1BaseFee = await oracles["Base"].read.l1BaseFee();
           const blobBaseFee = await oracles["Base"].read.blobBaseFee();
-          const weightedGasPrice = 16n * BASE_FEE_SCALAR * l1BaseFee / 1000000n + BLOB_BASE_FEE_SCALAR * blobBaseFee;
+          const weightedGasPrice = (16n * BASE_FEE_SCALAR * l1BaseFee + BLOB_BASE_FEE_SCALAR * blobBaseFee) / 1000000n;
           const gas = await contracts["Base"].estimateGas.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data]);
           const l1DataFee = WITHDRAWAL_TX_COMPRESSED_SIZE * weightedGasPrice;
           const { maxFeePerGas: l2GasPrice } = await clients["Base"].estimateFeesPerGas() // clients["Base"].getGasPrice();
