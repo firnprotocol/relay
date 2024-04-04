@@ -182,7 +182,7 @@ const server = https.createServer(options, (req, res) => {
           const l2GasPrice = await clients["Arbitrum One"].getGasPrice();
           const gas = await contracts["Arbitrum One"].estimateGas.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data]);
           const totalFee = l2GasPrice * gas;
-          if (post.tip < parseFloat(formatUnits(totalFee, 15)) * 0.9) throw new Error("Tip too low");
+          if (parseFloat(formatUnits(totalFee, 15)) - post.tip >= 1) throw new Error("Tip too low");
           hash = await contracts["Arbitrum One"].write.withdraw([post.Y, post.C, post.D, post.u, post.epoch, post.amount, post.tip, post.proof, post.destination, post.data], {
             chain: CHAIN_PARAMS["Arbitrum One"].chain,
             gas,
